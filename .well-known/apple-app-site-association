@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["FVP82SF6L4.com.mesize.app"],
+        "components": [
+          {
+            "/": "/import*",
+            "?": { "d": "*" },
+            "comment": "MeSize shared-profile import links"
+          }
+        ]
+      }
+    ]
+  }
+}
