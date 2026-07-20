@@ -36,9 +36,8 @@
     <script>
       // If the app is installed, the OS opens it via the Universal/App Link and this
       // page never shows. Shown only as a fallback → offer the app + a manual open.
-      var d = new URLSearchParams(location.search).get('d');
-      var scheme = 'mesize://import' + (d ? ('?d=' + encodeURIComponent(d)) : '');
-      document.getElementById('open').setAttribute('href', scheme);
+      // Forward the whole query string (?c=<token>) to the custom scheme.
+      document.getElementById('open').setAttribute('href', 'mesize://import' + location.search);
     </script>
   </body>
 </html>
