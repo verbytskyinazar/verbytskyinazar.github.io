@@ -6,8 +6,7 @@
         "components": [
           {
             "/": "/import*",
-            "?": { "d": "*" },
-            "comment": "MeSize shared-profile import links"
+            "comment": "MeSize shared-profile import links (any query, e.g. ?c=<token>)"
           }
         ]
       }

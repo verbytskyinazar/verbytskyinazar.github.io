@@ -3,7 +3,69 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Open in MeSize</title>
+    <title>Opening MeSize…</title>
+    <!-- iOS Smart App Banner (manual fallback if auto-open is blocked). Sits above
+         the redirect script so the script can read/update it during head parse. -->
+    <meta name="apple-itunes-app" content="app-id=6790968741, app-argument=mesize://import" />
+    <script>
+      // Runs during <head> parse — BEFORE the page paints — so if MeSize is
+      // installed the app opens before this splash is ever seen. If it isn't,
+      // we bounce to the store. The web page is never the destination.
+      // Body elements don't exist yet, so DOM-touching bits are deferred to the
+      // point they're actually needed (they're parsed right after this script).
+      (function () {
+        var APP_STORE = 'https://apps.apple.com/us/app/mesize/id6790968741';
+        var PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.mesize.app';
+        var query = location.search;                        // "?c=<token>"
+        var token = (query.match(/[?&]c=([^&#]+)/) || [])[1] || '';
+        var scheme = 'mesize://import' + query;             // forward the token to the app
+        var ua = navigator.userAgent || '';
+        var isAndroid = /Android/i.test(ua);
+        var store = isAndroid ? PLAY_STORE : APP_STORE;
+
+        // The Smart Banner meta is above this script, so it's already parsed —
+        // carry the token on it too.
+        var banner = document.querySelector('meta[name="apple-itunes-app"]');
+        if (banner) banner.setAttribute('content', 'app-id=6790968741, app-argument=' + scheme);
+
+        // No token → not a real share link. Straight to the store.
+        if (!token) { location.replace(store); return; }
+
+        // Android: one intent:// URL is the whole branch — Chrome opens the app if
+        // installed, else follows browser_fallback_url to the Play Store. No timer.
+        if (isAndroid) {
+          var intent = 'intent://import?c=' + encodeURIComponent(token) +
+            '#Intent;scheme=mesize;package=com.mesize.app;' +
+            'S.browser_fallback_url=' + encodeURIComponent(store) + ';end';
+          location.replace(intent);
+          return;
+        }
+
+        // iOS / other: fire the app scheme immediately. If the app opens, the page
+        // is backgrounded (visibilitychange/pagehide) and we cancel; if we're still
+        // here after a beat, the app isn't installed → go to the store.
+        var jumped = false;
+        function cancel() { jumped = true; }
+        document.addEventListener('visibilitychange', function () { if (document.hidden) cancel(); });
+        window.addEventListener('pagehide', cancel);
+        window.addEventListener('blur', cancel);
+
+        setTimeout(function () { if (!jumped) location.replace(store); }, 1400);
+
+        // Only if we're genuinely stuck: reveal manual links (DOM exists by now).
+        setTimeout(function () {
+          if (jumped) return;
+          var open = document.getElementById('open');
+          var st = document.getElementById('store');
+          var f = document.getElementById('fallback');
+          if (open) open.setAttribute('href', scheme);
+          if (st) st.setAttribute('href', store);
+          if (f) f.hidden = false;
+        }, 3000);
+
+        location.replace(scheme);
+      })();
+    </script>
     <style>
       :root { color-scheme: light dark; }
       body {
@@ -13,31 +75,27 @@
       }
       @media (prefers-color-scheme: dark) { body { background: #0c1124; color: #eaf0ff; } }
       .card { max-width: 420px; text-align: center; }
-      h1 { font-size: 1.5rem; margin: 0 0 8px; }
-      p { color: #6b6b82; margin: 0 0 24px; }
-      @media (prefers-color-scheme: dark) { p { color: #8a91ad; } }
-      .btn {
-        display: inline-block; padding: 14px 22px; border-radius: 999px; text-decoration: none;
-        font-weight: 600; background: #2e7cf6; color: #fff; margin: 6px;
+      .spinner {
+        width: 34px; height: 34px; margin: 0 auto 20px; border-radius: 50%;
+        border: 3px solid rgba(127,127,140,0.25); border-top-color: #2e7cf6;
+        animation: spin 0.8s linear infinite;
       }
-      .btn.secondary { background: rgba(127,127,140,0.18); color: inherit; }
-      .stores { margin-top: 16px; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      h1 { font-size: 1.25rem; margin: 0 0 8px; }
+      p { color: #6b6b82; margin: 0; font-size: 0.95rem; }
+      @media (prefers-color-scheme: dark) { p { color: #8a91ad; } }
+      a { color: #2e7cf6; text-decoration: none; font-weight: 600; }
+      .fallback { margin-top: 18px; font-size: 0.9rem; }
     </style>
   </head>
   <body>
     <div class="card">
-      <h1>Someone shared their sizes with you</h1>
-      <p>Open this in the MeSize app to save the profile.</p>
-      <a class="btn" id="open" href="#">Open in MeSize</a>
-      <div class="stores">
-        <a class="btn secondary" href="https://apps.apple.com/us/app/mesize/id6790968741">Get MeSize on the App Store</a>
-      </div>
+      <div class="spinner"></div>
+      <h1>Opening MeSize…</h1>
+      <p>Taking you to the shared profile.</p>
+      <p class="fallback" id="fallback" hidden>
+        Nothing happening? <a id="open" href="#">Open the app</a> · <a id="store" href="#">Get MeSize</a>
+      </p>
     </div>
-    <script>
-      // If the app is installed, the OS opens it via the Universal/App Link and this
-      // page never shows. Shown only as a fallback → offer the app + a manual open.
-      // Forward the whole query string (?c=<token>) to the custom scheme.
-      document.getElementById('open').setAttribute('href', 'mesize://import' + location.search);
-    </script>
   </body>
 </html>
